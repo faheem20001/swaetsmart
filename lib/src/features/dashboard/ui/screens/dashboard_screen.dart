@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import '../../../ai_plans/ui/screens/ai_nutrition_plan_screen.dart';
+import '../../../nutrition/ui/screens/food_log_screen.dart';
+import '../../../nutrition/ui/screens/food_scan_screen.dart';
+import '../../../profile/ui/screens/profile_screen.dart';
+import '../../../workouts/ui/screens/live_ai_workout_screen.dart';
+import '../../../workouts/ui/screens/workout_section_detail_screen.dart';
+
+import 'dashboard_chart_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -12,8 +19,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-
-  int _selectedIndex = 0; // State for BottomNavigationBar
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -40,23 +46,24 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Use Theme.of(context) to get colors from your FlexColorScheme theme
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: Colors.lightGreen[50],
       appBar: AppBar(
         title: const Text('Dashboard'),
-        // Use theme colors for a consistent look
         backgroundColor: Colors.transparent,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            // FIX: Use push with the full path for nested routes
-            onPressed: () => GoRouter.of(context).push('/dashboard/settings'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -68,9 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             const Text('Welcome back, Hashiii!',
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
-            // Modern, animated AI summary card
             _buildAiSummaryCard(context, colorScheme),
-
             const SizedBox(height: 32),
             Expanded(
               child: GridView.count(
@@ -82,32 +87,50 @@ class _DashboardScreenState extends State<DashboardScreen>
                     context,
                     icon: Icons.personal_video,
                     label: 'AI Workout Plan',
-                    // FIX: Use push with the full path
-                    onTap: () =>
-                        GoRouter.of(context).push('/dashboard/ai_workout_plan'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const WorkoutSectionDetailScreen()),
+                    ),
                   ),
                   _buildDashboardCard(
                     context,
                     icon: Icons.restaurant_menu,
                     label: 'AI Nutrition Plan',
-                    // FIX: Use push with the full path
-                    onTap: () => GoRouter.of(context)
-                        .push('/dashboard/ai_nutrition_plan'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AINutritionPlanScreen()),
+                    ),
                   ),
                   _buildDashboardCard(
                     context,
                     icon: Icons.camera,
                     label: 'Live AI Workout',
-                    // FIX: Use push with the full path
-                    onTap: () =>
-                        GoRouter.of(context).push('/dashboard/live_ai_workout'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const LiveAIWorkoutScreen()),
+                    ),
                   ),
                   _buildDashboardCard(
                     context,
                     icon: Icons.qr_code_scanner,
                     label: 'Scan Food',
-                    // FIX: Use push with the full path
-                    onTap: () => GoRouter.of(context).push('/dashboard/food_scan'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const FoodScanScreen()),
+                    ),
+                  ),
+                  _buildDashboardCard(
+                    context,
+                    icon: Icons.bar_chart,
+                    label: 'View Progress Charts',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const DashboardChartScreen()),
+                    ),
                   ),
                 ],
               ),
@@ -115,50 +138,47 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
       ),
-      // Add a modern Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
-        elevation:
-        16, // Increase the shadow height for a more pronounced effect
-        // Use theme colors for consistency
+        elevation: 16,
         backgroundColor: colorScheme.surfaceVariant.withOpacity(0.5),
         selectedItemColor: colorScheme.primary,
         unselectedItemColor: colorScheme.onSurfaceVariant.withOpacity(0.7),
         currentIndex: _selectedIndex,
-
-        // --- MODIFICATION HERE ---
-        // Added navigation logic to the onTap
         onTap: (index) {
-          // Don't navigate if already on the selected tab (unless it's dashboard)
-          if (_selectedIndex == index && index != 0) return;
+          setState(() => _selectedIndex = index);
 
-          setState(() {
-            _selectedIndex = index;
-          });
-
-          // Handle navigation
           switch (index) {
             case 0:
             // Dashboard
-            // Use .go() to reset the navigation stack to just the dashboard
-              GoRouter.of(context).go('/dashboard');
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const DashboardScreen()),
+              );
               break;
             case 1:
             // AI Pose
-              GoRouter.of(context).push('/dashboard/live_ai_workout');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const LiveAIWorkoutScreen()),
+              );
               break;
             case 2:
-            // Food Tracker -> NAVIGATE TO FOOD LOG
-              GoRouter.of(context).push('/dashboard/food_log');
+            // Food Tracker
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FoodLogScreen()),
+              );
               break;
             case 3:
             // Profile
-              GoRouter.of(context).push('/dashboard/settings');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
               break;
           }
         },
-        // --- END MODIFICATION ---
-
-        // Use fixed type for more than 3 items to keep labels visible
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
@@ -170,8 +190,13 @@ class _DashboardScreenState extends State<DashboardScreen>
             label: 'AI Pose',
           ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.fastfood_rounded), label: 'Food Tracker'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+            icon: Icon(Icons.fastfood_rounded),
+            label: 'Food Tracker',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
       ),
     );
@@ -183,7 +208,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      // Use a gradient for a more modern feel
       color: colorScheme.primaryContainer.withOpacity(0.5),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -206,14 +230,17 @@ class _DashboardScreenState extends State<DashboardScreen>
                       CircularProgressIndicator(
                         value: _animation.value,
                         strokeWidth: 8,
-                        backgroundColor: colorScheme.onPrimaryContainer.withOpacity(0.1),
+                        backgroundColor:
+                        colorScheme.onPrimaryContainer.withOpacity(0.1),
                         valueColor:
                         AlwaysStoppedAnimation<Color>(colorScheme.primary),
                       ),
                       Center(
-                        child: Text('$progressPercentage%',
-                            style: const TextStyle(
-                                fontSize: 24, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          '$progressPercentage%',
+                          style: const TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),
@@ -231,7 +258,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                       const SizedBox(height: 4),
                       Text(
                         "You're 70% of the way to your daily goal. Just a 15-minute walk to hit 100%!",
-                        // Use theme color for subtext
                         style: TextStyle(
                             fontSize: 14, color: colorScheme.onSurfaceVariant),
                       ),
@@ -247,20 +273,19 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildDashboardCard(BuildContext context,
-      {required IconData icon, required String label, required VoidCallback onTap}) {
-    // Get colors from the theme for consistency
+      {required IconData icon,
+        required String label,
+        required VoidCallback onTap}) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceVariant.withOpacity(0.5),
         borderRadius: BorderRadius.circular(20),
-        // Add an outline that matches the theme
         border: Border.all(
           color: colorScheme.outline.withOpacity(0.3),
           width: 1.5,
         ),
-        // Add a subtle shadow for depth
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withOpacity(0.1),
@@ -271,19 +296,21 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18), // Slightly smaller for visual inset
+        borderRadius: BorderRadius.circular(18),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 48, color: colorScheme.primary),
             const SizedBox(height: 12),
             Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 15)),
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 15,
+              ),
+            ),
           ],
         ),
       ),
