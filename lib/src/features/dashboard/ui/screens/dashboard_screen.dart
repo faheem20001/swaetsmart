@@ -26,8 +26,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     _animation = Tween<double>(begin: 0.0, end: 0.7).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     )..addListener(() {
-        setState(() {});
-      });
+      setState(() {});
+    });
 
     _controller.forward();
   }
@@ -118,18 +118,46 @@ class _DashboardScreenState extends State<DashboardScreen>
       // Add a modern Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
         elevation:
-            16, // Increase the shadow height for a more pronounced effect
+        16, // Increase the shadow height for a more pronounced effect
         // Use theme colors for consistency
         backgroundColor: colorScheme.surfaceVariant.withOpacity(0.5),
         selectedItemColor: colorScheme.primary,
         unselectedItemColor: colorScheme.onSurfaceVariant.withOpacity(0.7),
         currentIndex: _selectedIndex,
+
+        // --- MODIFICATION HERE ---
+        // Added navigation logic to the onTap
         onTap: (index) {
+          // Don't navigate if already on the selected tab (unless it's dashboard)
+          if (_selectedIndex == index && index != 0) return;
+
           setState(() {
             _selectedIndex = index;
           });
-          // TODO: Implement navigation or state change based on tap
+
+          // Handle navigation
+          switch (index) {
+            case 0:
+            // Dashboard
+            // Use .go() to reset the navigation stack to just the dashboard
+              GoRouter.of(context).go('/dashboard');
+              break;
+            case 1:
+            // AI Pose
+              GoRouter.of(context).push('/dashboard/live_ai_workout');
+              break;
+            case 2:
+            // Food Tracker -> NAVIGATE TO FOOD LOG
+              GoRouter.of(context).push('/dashboard/food_log');
+              break;
+            case 3:
+            // Profile
+              GoRouter.of(context).push('/dashboard/settings');
+              break;
+          }
         },
+        // --- END MODIFICATION ---
+
         // Use fixed type for more than 3 items to keep labels visible
         type: BottomNavigationBarType.fixed,
         items: const [
@@ -180,7 +208,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                         strokeWidth: 8,
                         backgroundColor: colorScheme.onPrimaryContainer.withOpacity(0.1),
                         valueColor:
-                            AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                        AlwaysStoppedAnimation<Color>(colorScheme.primary),
                       ),
                       Center(
                         child: Text('$progressPercentage%',
@@ -250,7 +278,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             Icon(icon, size: 48, color: colorScheme.primary),
             const SizedBox(height: 12),
             Text(
-              label,
+                label,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontWeight: FontWeight.bold,

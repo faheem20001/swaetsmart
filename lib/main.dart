@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flex_color_scheme/flex_color_scheme.dart'; // 1. Import flex_color_scheme
+import 'package:flex_color_scheme/flex_color_scheme.dart';
+import 'src/features/workouts/ui/screens/workout_section_detail_screen.dart';
 
 // Import all your screen files
 import 'src/features/onboarding/ui/screens/splash_screen.dart';
@@ -12,12 +13,14 @@ import 'src/features/workouts/ui/screens/live_ai_workout_screen.dart';
 import 'src/features/workouts/ui/screens/workout_feedback_screen.dart';
 import 'src/features/profile/ui/screens/settings_screen.dart';
 
+// Import the new log screen
+import 'src/features/nutrition/ui/screens/food_log_screen.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const SweatSmartApp());
 }
 
-// 2. Restructure routes with nesting
 final GoRouter _router = GoRouter(
   navigatorKey: GlobalKey<NavigatorState>(),
   initialLocation: '/', // Start at the splash screen
@@ -42,7 +45,13 @@ final GoRouter _router = GoRouter(
         ),
         GoRoute(
           path: 'food_scan', // Becomes '/dashboard/food_scan'
+          // --- FIX: Added 'const' ---
           builder: (context, state) => const FoodScanScreen(),
+        ),
+        GoRoute(
+          path: 'food_log', // Becomes '/dashboard/food_log'
+          // --- NEW: Added 'const' and the route ---
+          builder: (context, state) => const FoodLogScreen(),
         ),
         GoRoute(
             path: 'live_ai_workout', // Becomes '/dashboard/live_ai_workout'
@@ -58,6 +67,14 @@ final GoRouter _router = GoRouter(
         GoRoute(
           path: 'settings', // Becomes '/dashboard/settings'
           builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: 'workout_details/:sectionId', // Uses a path parameter
+          builder: (context, state) {
+            // Extract the parameter
+            final sectionId = state.pathParameters['sectionId']!;
+            return WorkoutSectionDetailScreen(sectionId: sectionId);
+          },
         ),
       ],
     ),
