@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+
+import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+
+import 'package:firebase_storage/firebase_storage.dart';
 
 class IdCardScanScreen extends StatefulWidget {
   const IdCardScanScreen({super.key});
@@ -15,18 +18,20 @@ class _IdCardScanScreenState extends State<IdCardScanScreen> {
   File? pickedImage;
   bool loading = false;
 
-  final ImagePicker picker = ImagePicker();
+  final picker = ImagePicker();
   final textRecognizer = TextRecognizer();
+  final barcodeScanner = BarcodeScanner(
+    formats: [BarcodeFormat.qrCode, BarcodeFormat.code128, BarcodeFormat.code39],
+  );
 
-  /// 🔥 Very strong USN regex (MOST COLLEGES use these patterns)
+  // Strong USN regex (VTU + Other colleges)
   final usnRegex = RegExp(
-    r'\b([A-Z0-9]{2,4}[A-Z]{2}[0-9]{2,4})\b',
+    r'[A-Za-z0-9]{3,4}[A-Za-z]{2}[0-9]{3,4}',
     caseSensitive: false,
   );
 
   Future<void> pickAndScan() async {
     final XFile? img = await picker.pickImage(source: ImageSource.gallery);
-
     if (img == null) return;
 
     setState(() {
@@ -34,18 +39,41 @@ class _IdCardScanScreenState extends State<IdCardScanScreen> {
       loading = true;
     });
 
-    // ---- OCR ----
-    final input = InputImage.fromFile(pickedImage!);
-    final result = await textRecognizer.processImage(input);
-    final text = result.text;
+    final inputImage = InputImage.fromFilePath(img.path);
 
-    print("🔍 OCR OUTPUT:\n$text\n");
+    // -------------------------------------------------------------------
+    // 1️⃣ BARCODE SCAN TO GET USN (MOST ACCURATE)
+    // -------------------------------------------------------------------
+    String? extractedUSN;
 
-    // ----------------------------------------------------
-    // 🧠 NAME EXTRACTION
-    // ----------------------------------------------------
+    try {
+      final barcodes = await barcodeScanner.processImage(inputImage);
+
+      if (barcodes.isNotEmpty) {
+        for (Barcode b in barcodes) {
+          String? raw = b.rawValue;
+          if (raw != null) {
+            final match = usnRegex.firstMatch(raw);
+            if (match != null) {
+              extractedUSN = match.group(0)!.toUpperCase();
+              print("🎯 USN FOUND IN BARCODE: $extractedUSN");
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print("⚠ Barcode scan error: $e");
+    }
+
+    // -------------------------------------------------------------------
+    // 2️⃣ OCR TO GET NAME
+    // -------------------------------------------------------------------
+    final textResult = await textRecognizer.processImage(inputImage);
+    final fullText = textResult.text;
+    final lines = fullText.split("\n");
+
     String? extractedName;
-    List<String> lines = text.split("\n");
 
     for (String line in lines) {
       if (line.toLowerCase().contains("name")) {
@@ -53,70 +81,57 @@ class _IdCardScanScreenState extends State<IdCardScanScreen> {
       }
     }
 
-    // If "name:" missing, fallback to 2-word capitalized name
     extractedName ??= lines.firstWhere(
-          (l) => RegExp(r'^[A-Z][a-z]+ [A-Z][a-z]+').hasMatch(l),
+          (l) => RegExp(r'^[A-Za-z ]{3,}$').hasMatch(l) && l.trim().split(" ").length >= 2,
       orElse: () => "",
     );
 
-    // ----------------------------------------------------
-    // 🔥 USN EXTRACTION (handles multi-line broken OCR)
-    // ----------------------------------------------------
-    String cleaned = text.replaceAll("\n", " ");
-
-    String? extractedUSN;
-
-    // Try full text first
-    final match = usnRegex.firstMatch(cleaned);
-    if (match != null) {
-      extractedUSN = match.group(0);
-    } else {
-      // Then try line-by-line
-      for (String line in lines) {
-        final m = usnRegex.firstMatch(line);
-        if (m != null) {
-          extractedUSN = m.group(0);
-          break;
-        }
+    // -------------------------------------------------------------------
+    // 3️⃣ IF BARCODE FAILED → TRY OCR FOR USN
+    // -------------------------------------------------------------------
+    if (extractedUSN == null) {
+      final cleaned = fullText.replaceAll("\n", " ");
+      final match = usnRegex.firstMatch(cleaned);
+      if (match != null) {
+        extractedUSN = match.group(0)!.toUpperCase();
+        print("🔄 USN FOUND BY OCR: $extractedUSN");
       }
     }
 
-    extractedUSN = extractedUSN?.toUpperCase();
-
-    // ----------------------------------------------------
-    // 📸 Upload Picture to Firebase Storage
-    // ----------------------------------------------------
-    String? downloadUrl;
+    // -------------------------------------------------------------------
+    // 4️⃣ Upload image to Firebase
+    // -------------------------------------------------------------------
+    String? url;
     try {
       final ref = FirebaseStorage.instance
           .ref("id_scans/${DateTime.now().millisecondsSinceEpoch}.jpg");
-
-      await ref.putFile(pickedImage!);
-      downloadUrl = await ref.getDownloadURL();
+      await ref.putFile(File(img.path));
+      url = await ref.getDownloadURL();
     } catch (e) {
-      print("🔥 Image upload error: $e");
+      print("🔥 Upload error: $e");
     }
 
-    // ----------------------------------------------------
-    // RETURN SCAN RESULT TO SIGNUP PAGE
-    // ----------------------------------------------------
+    setState(() {
+      loading = false;
+    });
+
     Navigator.pop(context, {
       "name": extractedName ?? "",
       "usn": extractedUSN ?? "",
-      "profilePic": downloadUrl,
+      "profilePic": url,
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Scan University ID")),
+      appBar: AppBar(title: const Text("Scan ID Card")),
       body: Center(
         child: loading
             ? const CircularProgressIndicator()
             : ElevatedButton.icon(
-          icon: const Icon(Icons.photo_library),
-          label: const Text("Pick ID From Gallery"),
+          icon: const Icon(Icons.camera_alt),
+          label: const Text("Pick ID from Gallery"),
           onPressed: pickAndScan,
         ),
       ),
